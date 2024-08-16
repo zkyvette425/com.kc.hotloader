@@ -1,2 +1,2 @@
 # com.kc.hotloader
-框架热更loader
+kc框架启动层 ，用于热更项目

@@ -1,0 +1,20 @@
+{
+    "name": "KC.HotLoader.Runtime",
+    "rootNamespace": "KC",
+    "references": [
+        "GUID:8d70686b06197674a9788a9e9bb145f4",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:b5087d619b70c964596d6022e9ff35bb",
+        "GUID:e34a5702dd353724aa315fb8011f08c3",
+        "GUID:13ba8ce62aa80c74598530029cb2d649"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
