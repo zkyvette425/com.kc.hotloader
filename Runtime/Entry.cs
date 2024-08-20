@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -6,7 +8,7 @@ namespace KC
     public sealed class Entry : MonoBehaviour
     {
         public WorldBinder WorldBinder { get; private set; }
-        
+
         private void Start()
         {
             DontDestroyOnLoad(this);
@@ -39,7 +41,7 @@ namespace KC
             }
             
             await CodeLoader.Instance.DownloadAsync();
-            CodeLoader.Instance.Start(gameObject);
+            CodeLoader.Instance.Start();
         }
 
         private void Update()

@@ -1,55 +1,134 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Cysharp.Threading.Tasks;
 using HybridCLR;
 using UnityEngine;
+using YooAsset;
 
 namespace KC
 {
-    public class CodeLoader : Singleton<CodeLoader>,ISingletonAwake
+    public class CodeLoader : Singleton<CodeLoader>, ISingletonAwake
     {
         private Assembly _assembly;
         private Dictionary<string, TextAsset> _dlls;
         private Dictionary<string, TextAsset> _aotDlls;
-        private HotfixDllConfig _hotfixDllConfig;
-        
+        private string _hotfixClass;
+        private string _hotfixMethod;
+        private string _hotfixDll;
+
         public void Awake()
         {
-         
+
         }
-        
+
         public async UniTask DownloadAsync()
         {
-#if !UNITY_EDITOR
-            _dlls = await ResourcesManager.Instance.LoadAllAssetsAsync<TextAsset>(
-                "Packages/com.kc.hotloader/Bundles/Code/Unity.Hotfix.dll.bytes");
+            try
+            {
+                var loadAssetAsync = YooAssets.LoadAssetAsync("LoadConfig");
+                await loadAssetAsync.ToUniTask();
+                var loadConfig = loadAssetAsync.GetAssetObject<LoadConfig>();
+                if (string.IsNullOrEmpty(loadConfig.hotfixDll))
+                {
+                    Debug.LogError("热更入口LoadConfig文件填写的热更Dll资源名为空,无法进行热更");
+                    return;
+                }
 
+                if (string.IsNullOrEmpty(loadConfig.staticHotfixEntryClass) ||
+                    string.IsNullOrEmpty(loadConfig.staticHotfixEntryMethod))
+                {
+                    Debug.LogError("热更入口LoadConfig文件填写的类名或者方法名为空,无法进行热更");
+                    return;
+                }
+
+                _hotfixClass = loadConfig.staticHotfixEntryClass;
+                _hotfixMethod = loadConfig.staticHotfixEntryMethod;
+                _hotfixDll = loadConfig.hotfixDll;
+                loadAssetAsync.Release();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"加载热更入口LoadConfig文件失败,原因:{e}");
+                return;
+            }
+
+
+#if !UNITY_EDITOR
+            _dlls = await ResourcesManager.Instance.LoadAllAssetsAsync<TextAsset>(_hotfixDll);
             _aotDlls = await ResourcesManager.Instance.LoadAllAssetsAsync<TextAsset>(
                 "Packages/com.kc.hotloader/Bundles/Code/mscorlib.dll.bytes");
 #endif
+
             await UniTask.CompletedTask;
         }
-        
-        public void Start(GameObject go)
+
+        public void Start()
         {
 #if UNITY_EDITOR
-                _assembly = System.AppDomain.CurrentDomain.GetAssemblies()
-                .First(p => p.GetName().Name == "Unity.Hotfix");
+            _assembly = System.AppDomain.CurrentDomain.GetAssemblies()
+                .First(p => p.GetName().Name == _hotfixDll);
 #else
-                var hotfixAss = _dlls["Unity.Hotfix.dll"].bytes;
-                var hotfixPdb = _dlls["Unity.Hotfix.pdb"].bytes;
+            var entryDll = $"{_hotfixDll}.dll";
+            var entryPdb = $"{_hotfixDll}.pdb";
+            var hotfixAss = _dlls[entryDll].bytes;
+            var hotfixPdb = _dlls[entryPdb].bytes;
+
+            _dlls.Remove(entryDll);
+            _dlls.Remove(entryPdb);
             
-                foreach (var kv in this._aotDlls)
+            foreach (var kv in this._aotDlls)
+            {
+                TextAsset textAsset = kv.Value;
+                RuntimeApi.LoadMetadataForAOTAssembly(textAsset.bytes, HomologousImageMode.SuperSet);
+            }
+
+            var hotfixLoads = GetLoads();
+            while (hotfixLoads.Count > 0)
+            {
+                var list = hotfixLoads.Dequeue();
+                if (list.Count == 1)
                 {
-                    TextAsset textAsset = kv.Value;
-                    RuntimeApi.LoadMetadataForAOTAssembly(textAsset.bytes, HomologousImageMode.SuperSet);
+                    Assembly.Load(list[0]);
                 }
-            
-                _assembly = Assembly.Load(hotfixAss, hotfixPdb);
+                else if (list.Count == 2)
+                {
+                    Assembly.Load(list[0],list[1]);
+                }
+            }
+            _assembly = Assembly.Load(hotfixAss, hotfixPdb);
 #endif
-            var type = _assembly.GetType("Game.HotfixGameEntry");
-            go.AddComponent(type);
+            var type = _assembly.GetType(_hotfixClass);
+            MethodInfo method = type.GetMethod(_hotfixMethod);
+            method?.Invoke(null, null);
+        }
+
+        private Queue<List<byte[]>> GetLoads()
+        {
+            HashSet<string> set = new HashSet<string>();
+            Queue<List<byte[]>> queue = new Queue<List<byte[]>>();
+            foreach (var key in _dlls.Keys)
+            {
+                var name = string.Empty;
+                if (key.Contains("dll"))
+                {
+                    name = key.Replace("dll", string.Empty);
+                }
+                else if (key.Contains("pdb"))
+                {
+                    name = key.Replace("pdb", string.Empty);
+                }
+
+                if (!set.Contains(name))
+                {
+                    var list = new List<byte[]> { _dlls[$"{name}.dll"].bytes, _dlls[$"{name}.pdb"].bytes };
+                    queue.Enqueue(list);
+                    set.Add(name);
+                }
+            }
+
+            return queue;
         }
     }
 }
