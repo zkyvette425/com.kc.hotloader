@@ -5,11 +5,10 @@ using System.Reflection;
 using Cysharp.Threading.Tasks;
 using HybridCLR;
 using UnityEngine;
-using YooAsset;
 
 namespace KC
 {
-    public class CodeLoader : Singleton<CodeLoader>, ISingletonAwake
+    public class CodeLoader 
     {
         private Assembly _assembly;
         private Dictionary<string, TextAsset> _dlls;
@@ -17,19 +16,18 @@ namespace KC
         private string _hotfixClass;
         private string _hotfixMethod;
         private string _hotfixDll;
+        private ResourcesManager _resourcesManager;
 
-        public void Awake()
+        public CodeLoader(ResourcesManager resourcesManager)
         {
-
+            _resourcesManager = resourcesManager;
         }
 
         public async UniTask DownloadAsync()
         {
             try
             {
-                var loadAssetAsync = YooAssets.LoadAssetAsync("LoadConfig");
-                await loadAssetAsync.ToUniTask();
-                var loadConfig = loadAssetAsync.GetAssetObject<LoadConfig>();
+                var loadConfig = Resources.Load<LoadConfig>("LoadConfig");
                 if (string.IsNullOrEmpty(loadConfig.hotfixDll))
                 {
                     Debug.LogError("热更入口LoadConfig文件填写的热更Dll资源名为空,无法进行热更");
@@ -46,7 +44,6 @@ namespace KC
                 _hotfixClass = loadConfig.staticHotfixEntryClass;
                 _hotfixMethod = loadConfig.staticHotfixEntryMethod;
                 _hotfixDll = loadConfig.hotfixDll;
-                loadAssetAsync.Release();
             }
             catch (Exception e)
             {
@@ -56,9 +53,8 @@ namespace KC
 
 
 #if !UNITY_EDITOR
-            _dlls = await ResourcesManager.Instance.LoadAllAssetsAsync<TextAsset>(_hotfixDll);
-            _aotDlls = await ResourcesManager.Instance.LoadAllAssetsAsync<TextAsset>(
-                "Packages/com.kc.hotloader/Bundles/Code/mscorlib.dll.bytes");
+            _dlls = await _resourcesManager.LoadAllAssetsAsync<TextAsset>($"{_hotfixDll}.dll");
+            _aotDlls = await _resourcesManager.LoadAllAssetsAsync<TextAsset>("mscorlib.dll");
 #endif
 
             await UniTask.CompletedTask;
@@ -78,7 +74,7 @@ namespace KC
             _dlls.Remove(entryDll);
             _dlls.Remove(entryPdb);
             
-            foreach (var kv in this._aotDlls)
+            foreach (var kv in _aotDlls)
             {
                 TextAsset textAsset = kv.Value;
                 RuntimeApi.LoadMetadataForAOTAssembly(textAsset.bytes, HomologousImageMode.SuperSet);
@@ -111,15 +107,10 @@ namespace KC
             foreach (var key in _dlls.Keys)
             {
                 var name = string.Empty;
-                if (key.Contains("dll"))
+                if (key.EndsWith(".dll") || key.EndsWith(".pdb"))
                 {
-                    name = key.Replace("dll", string.Empty);
+                    name = key[..^4];
                 }
-                else if (key.Contains("pdb"))
-                {
-                    name = key.Replace("pdb", string.Empty);
-                }
-
                 if (!set.Contains(name))
                 {
                     var list = new List<byte[]> { _dlls[$"{name}.dll"].bytes, _dlls[$"{name}.pdb"].bytes };

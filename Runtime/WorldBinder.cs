@@ -34,19 +34,4 @@ namespace KC
         /// </summary>
         Top
     }
-    
-    public sealed class WorldBinder
-    {
-        private readonly UIBinder _uiBinder;
-
-        public WorldBinder(Transform transform)
-        {
-            _uiBinder = new UIBinder(transform);
-        }
-
-        public Canvas GetUI(UILayerType type)
-        {
-            return _uiBinder.Canvas[(int)type];
-        }
-    }
 }
