@@ -2,8 +2,8 @@
     "name": "KC.HotLoader.Editor",
     "rootNamespace": "KC",
     "references": [
-        "GUID:3720f097671726046820cfd03fd2fcc5",
         "GUID:2373f786d14518f44b0f475db77ba4de",
+        "GUID:0ee5a7a3b0d1ca94c989d83b429305d7",
         "GUID:55b2c95394c600e41aed6279979330b7"
     ],
     "includePlatforms": [
