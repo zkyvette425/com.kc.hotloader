@@ -1,15 +1,14 @@
 {
   "name": "com.kc.hotloader",
   "displayName": "KC.HotLoader",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "unity": "2022.3",
   "author": {
     "name": "KunZhou",
     "email": "450228418@qq.com"
   },
   "dependencies": {
-    "com.kc.yooasset": "0.1.1",
-    "com.kc.binder": "0.1.0",
-    "com.cysharp.unitask": "2.5.5"
+    "com.kc.yooasset": "<1.0.0",
+    "com.kc.binder": "<1.0.0"
   }
 }
