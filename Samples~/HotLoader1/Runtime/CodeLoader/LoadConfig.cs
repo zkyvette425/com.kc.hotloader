@@ -7,12 +7,12 @@ namespace KC
     public class LoadConfig : ScriptableObject
     {
         [Header("静态热更入口程序集资源名称")]
-        public string hotfixDll;
+        public string hotfixDll = "KC.Demo";
         
         [Header("静态热更入口类名,比如KC.GameEntry")]
-        public string staticHotfixEntryClass;
+        public string staticHotfixEntryClass = "KC.HotfixStart";
 
         [Header("静态热更入口方法名,比如Start")]
-        public string staticHotfixEntryMethod;
+        public string staticHotfixEntryMethod = "Start";
     }
 }
