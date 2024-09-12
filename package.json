@@ -1,12 +1,19 @@
 {
   "name": "com.kc.hotloader",
   "displayName": "KC.HotLoader",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "unity": "2022.3",
   "author": {
     "name": "KunZhou",
     "email": "450228418@qq.com"
   },
+  "samples": [
+    {
+      "displayName": "hotloader1",
+      "description": "第一种实现方式",
+      "path": "Samples~/HotLoader1"
+    }
+  ],
   "dependencies": {
     "com.kc.binder": "0.1.1",
     "com.kc.yooasset": "0.1.4",
